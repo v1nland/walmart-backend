@@ -1,0 +1,12 @@
+# ignore all node_modules folders
+node_modules/
+
+# ignore all logs
+*.log
+
+# ignore env
+.env
+
+# misc
+.DS_Store
+.git/
