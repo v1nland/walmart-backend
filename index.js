@@ -8,57 +8,109 @@ const app = express();
 // CORS stuff
 app.use(cors());
 app.use((req, res, next) => {
-	res.setHeader("Access-Control-Allow-Origin", "*");
-	res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, PATCH, DELETE");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+  );
 
-	next();
+  next();
 });
 
 const client = mongo.MongoClient;
 
 // get all
-app.get("/", (req, res) => {
-	client.connect(process.env.MONGO_URI, (err, db) => {
-		if (err) throw err;
+// get by brand
+// get by description
+app.get("/api/v1/productos", (req, res) => {
+  const q_params = req.query;
 
-		db.db("promotions")
-			.collection("products")
-			.find({})
-			.toArray((err, result) => {
-				if (err) throw err;
+  client.connect(
+    process.env.MONGO_URI,
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    },
+    (err, db) => {
+      if (err) throw err;
 
-				res.send(result);
+      const query = q_params.query
+        ? {
+            $or: [
+              {
+                brand: new RegExp(q_params.query, "g"),
+              },
+              {
+                description: new RegExp(q_params.query, "g"),
+              },
+            ],
+          }
+        : {};
 
-				db.close();
-			});
-	});
+      const has_discount = q_params.query
+        ? checkPalindrom(q_params.query)
+        : false;
+
+      db.db("promotions")
+        .collection("products")
+        .find(query)
+        .toArray((err, result) => {
+          if (err) throw err;
+
+          if (has_discount) {
+            result.map((elem) => {
+              elem.discount_price = elem.price / 2;
+            });
+
+            res.json(result);
+          } else {
+            result.map((elem) => {
+              elem.discount_price = elem.price;
+            });
+
+            res.json(result);
+          }
+
+          db.close();
+        });
+    }
+  );
 });
 
 // get by id
-app.get("/:id", (req, res) => {
-	const query = { id: parseInt(req.params.id) };
+app.get("/api/v1/productos/:id", (req, res) => {
+  const query = { id: parseInt(req.params.id) };
+  const has_discount = req.params.id ? checkPalindrom(req.params.id) : false;
 
-	client.connect(process.env.MONGO_URI, (err, db) => {
-		if (err) throw err;
+  client.connect(
+    process.env.MONGO_URI,
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    },
+    (err, db) => {
+      if (err) throw err;
 
-		db.db("promotions")
-			.collection("products")
-			.findOne(query, (err, result) => {
-				if (err) throw err;
+      db.db("promotions")
+        .collection("products")
+        .findOne(query, (err, result) => {
+          if (err) throw err;
 
-				res.send(result);
+          if (has_discount)
+            res.json({ ...result, discount_price: result.price / 2 });
+          else res.json({ ...result, discount_price: result.price });
 
-				db.close();
-			});
-	});
+          db.close();
+        });
+    }
+  );
 });
 
-// get by brand
-
-// get by description
-
-// query with regex
-
-app.listen(9090, "0.0.0.0", () => {
-	console.log(`Server listening on port 9090`);
+app.listen(8080, "0.0.0.0", () => {
+  console.log(`Server listening on port 8080`);
 });
+
+// helper functions
+function checkPalindrom(str) {
+  return str == str.split("").reverse().join("");
+}
