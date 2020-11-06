@@ -57,7 +57,9 @@ app.get("/api/v1/productos", (req, res) => {
         .toArray((err, result) => {
           if (err) throw err;
 
-          if (has_discount) {
+          if (!result.length) {
+            res.json([]);
+          } else if (has_discount) {
             result.map((elem) => {
               elem.discount_price = elem.price / 2;
             });
@@ -93,12 +95,25 @@ app.get("/api/v1/productos/:id", (req, res) => {
 
       db.db("promotions")
         .collection("products")
-        .findOne(query, (err, result) => {
+		.find(query)
+		.toArray((err, result) => {
           if (err) throw err;
 
-          if (has_discount)
-            res.json({ ...result, discount_price: result.price / 2 });
-          else res.json({ ...result, discount_price: result.price });
+          if (!result.length) {
+            res.json([]);
+          } else if (has_discount) {
+            result.map((elem) => {
+              elem.discount_price = elem.price / 2;
+            });
+
+            res.json(result);
+          } else {
+            result.map((elem) => {
+              elem.discount_price = elem.price;
+            });
+
+            res.json(result);
+          }
 
           db.close();
         });
