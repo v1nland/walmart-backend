@@ -1,9 +1,11 @@
-require("dotenv").config();
-
+const dotenv = require("dotenv").config();
 const express = require("express");
 const mongo = require("mongodb");
 const cors = require("cors");
 const app = express();
+
+// functionalities
+const checkPalindrom = require("./functions/checkPalindrom");
 
 // CORS stuff
 app.use(cors());
@@ -120,8 +122,3 @@ var port = process.env.PORT || 27019;
 app.listen(port, "0.0.0.0", () => {
 	console.log(`Server listening on port ${port}`);
 });
-
-// helper functions
-function checkPalindrom(str) {
-	return str == str.split("").reverse().join("");
-}
